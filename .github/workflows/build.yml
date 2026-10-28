@@ -1,0 +1,49 @@
+# แพ็กแม่แบบที่ติ๊กให้ลูกค้า (customer: true) จาก repo พรอมต์ส่วนตัว → meta.json + templates.bin (เข้ารหัส)
+# ทุก 15 นาที + กดเอง · commit เฉพาะเมื่อเนื้อหาเปลี่ยน · log ของ repo สาธารณะ = ไม่พิมพ์เนื้อหาไฟล์
+name: build
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [prompts-updated]
+permissions:
+  contents: write
+concurrency:
+  group: build
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/checkout@v4
+        with:
+          repository: snibzyz/inkidea-prompts
+          token: ${{ secrets.PROMPTS_READ_TOKEN }}
+          path: _src
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: แพ็กแม่แบบ
+        env:
+          TEMPLATES_KEY: ${{ secrets.TEMPLATES_KEY }}
+        run: |
+          export SOURCE_SHA=$(git -C _src rev-parse HEAD)
+          node _src/scripts/check.mjs
+          node _src/scripts/build-customer-bundle.mjs --out . --prev meta.json
+      - name: บันทึก
+        run: |
+          rm -rf _src
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # schedule ของ repo สาธารณะหยุดเองถ้าไม่มีความเคลื่อนไหว 60 วัน — แตะ .keepalive ทุก ~45 วัน
+          last=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - last )) -gt $(( 45 * 86400 )) ]; then date -u +%FT%TZ > .keepalive; fi
+          git add -A meta.json templates.bin .keepalive 2>/dev/null || true
+          if git diff --cached --quiet; then echo "ไม่มีอะไรเปลี่ยน"; exit 0; fi
+          git commit -q -m "แม่แบบ $(node -p "require('./meta.json').content_hash.slice(0,12)") · $(node -p "require('./meta.json').count") ไฟล์"
+          git push -q
