@@ -1,4 +1,4 @@
-# แพ็กแม่แบบที่ติ๊กให้ลูกค้า (customer: true) จาก repo พรอมต์ส่วนตัว → meta.json + templates.bin (เข้ารหัส)
+# แพ็กแม่แบบที่ติ๊กให้ลูกค้า (customer: true) จาก repo พรอมต์ส่วนตัว (snibzyz/inkprompt) → meta.json + templates.bin (เข้ารหัส)
 # ทุก 15 นาที + กดเอง · commit เฉพาะเมื่อเนื้อหาเปลี่ยน · log ของ repo สาธารณะ = ไม่พิมพ์เนื้อหาไฟล์
 name: build
 on:
@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 1
       - uses: actions/checkout@v4
         with:
-          repository: snibzyz/inkidea-prompts
+          repository: snibzyz/inkprompt
           token: ${{ secrets.PROMPTS_READ_TOKEN }}
           path: _src
           fetch-depth: 1
